@@ -46,5 +46,5 @@ It powers the daily insights delivered by the frontend app, fetching news, gener
 
 1. Clone the repo
 ```bash
-git clone https://github.com/your-username/growpulse-backend.git
+git clone https://github.com/mejorandro/growpulse-backend.git
 cd growpulse-backend
