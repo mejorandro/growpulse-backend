@@ -1,0 +1,26 @@
+[project]
+name = "growpulse-backend"
+version = "0.1.0"
+description = "Grow-Pulse Backend (subproducto de GrowRoutine) - FastAPI + LangChain"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "langchain",
+    "langchain-openai",
+    "langgraph",
+    "langgraph-checkpoint",
+    "langgraph-prebuilt",
+    "langgraph-sdk",
+    "langsmith",
+    "openai",
+    "requests",
+    "pydantic",
+    "python-dotenv",
+    "nest-asyncio",
+    "jupyterlab",
+    "ipykernel"
+]
+
+[tool.uv]
+index-url = "https://pypi.org/simple"

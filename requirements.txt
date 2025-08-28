@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+langchain
+langchain-openai
+langgraph
+langgraph-checkpoint
+langgraph-prebuilt
+langgraph-sdk
+langsmith
+openai
+requests
+pydantic
+python-dotenv
+nest-asyncio
+jupyterlab
+ipykernel
