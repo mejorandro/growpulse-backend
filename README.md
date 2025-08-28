@@ -1,15 +1,3 @@
-# GrowPulse — Backend & Frontend READMEs (WIP)
-
-> **Purpose (for hiring managers):** GrowPulse is an AI‑curated daily reading & action engine for busy engineers and tech leads. It ingests today’s top tech/business stories, summarizes them in clear English, and outputs **actionable, role‑aware briefs** with **mini POC ideas you can build in ~45 minutes**. Built with **FastAPI + LangChain/LangGraph** on the backend and **Next.js + TypeScript** on the frontend. Fully local dev, container‑ready, with a clear roadmap toward production.
-
----
-
-Below you’ll find **two complete README files** you can drop into `/backend/README.md` and `/frontend/README.md`. They’re written to be useful for evaluators and practical for developers.
-
----
-
-## `/backend/README.md`
-
 # GrowPulse • Backend (FastAPI + LangChain) — WIP
 
 > **One‑liner:** AI service that turns today’s tech/business news into role‑aware daily readings with takeaways and 45‑minute POC ideas.
