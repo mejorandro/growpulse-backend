@@ -13,6 +13,15 @@ It is intentionally built lean, modular, and agent‑first – to explore how fa
 
 ---
 
+## 🗺️ GrowPulse Architecture
+
+<p align="center">
+  <img src="docs/architecture-diagram.png.png" alt="GrowPulse Architecture" width="700">
+</p>
+
+The **GrowPulse** architecture is designed to be modular, scalable, and *agent-first*,  
+allowing new flows and agents to be integrated without compromising the system’s simplicity.
+
 ## 🔧 Requirements
 
 - Python 3.10+
