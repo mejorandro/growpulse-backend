@@ -31,8 +31,29 @@ class State(TypedDict):
 
 llm = ChatOpenAI(model=OPENAI_MODEL)
 
+def format_instruction(lang: str) -> str:
+    return (
+        "No saludes al usuario ni incluyas frases de cortesía. "
+        "Si hay un texto introductorio agrega un salto de línea extra después de él para separarlo claramente del contenido principal. "
+        "No agregues encabezados ni etiquetas de sección, solo empieza directamente con el texto o contenido que fuiste creado para generar. "
+        "Usa saltos de línea reales (presiona Enter dos veces) para separar párrafos y también al final. "
+        "No escribas '\\n\\n' como texto literal, deben ser saltos de línea reales. "
+        "El resultado debe estar listo para pasar a un parser de Markdown y verse correctamente espaciado verticalmente."
+        if lang == "es"
+        else
+        "Do not greet the user or include courtesy phrases. "
+        "If there is an introductory text, add an extra line break after it to clearly separate it from the main content. "
+        "Do not add headings or section labels, just start directly with the text or content you were created to generate. "
+        "Use real line breaks (press Enter twice) to separate paragraphs and also at the end. "
+        "Do not output '\\n\\n' as literal text, they must be real line breaks. "
+        "The output must be ready to be parsed as Markdown and look properly spaced vertically."
+    )
+
+
+
 def lang_prefix(lang: str, es: str, en: str) -> str:
     return es if lang == "es" else en
+    
 
 def _ctx(state: State) -> str:
     # Contexto común para todos los prompts
@@ -47,6 +68,7 @@ def news_agent(state: State) -> State:
     "You are an AI analyst. Extract 3–5 recent AI news (OpenAI, Anthropic, DeepMind, open-source, enterprise). Be concrete, no fabrication.")}
 
 {_ctx(state)}
+{format_instruction(state['lang'])}
 """
     result = llm.invoke(prompt)
     state["news"] = result.content
@@ -60,6 +82,7 @@ def meaning_agent(state: State) -> State:
 {_ctx(state)}
 Noticias:
 {state['news']}
+{format_instruction(state['lang'])}
 """
     result = llm.invoke(prompt)
     state["meaning"] = result.content
@@ -71,6 +94,7 @@ def action_agent(state: State) -> State:
     "Suggest ONE micro-action (≤15 min) executable today (short post, DM, pitch, test repo), aligned to the context.")}
 
 {_ctx(state)}
+{format_instruction(state['lang'])}
 """
     result = llm.invoke(prompt)
     state["action"] = result.content
@@ -81,6 +105,7 @@ def linkedin_agent(state: State) -> State:
 style: authoritative, inspiring, not egocentric. Goal: attract inbound high-value leads (+10K/month).
 
 {_ctx(state)}
+{format_instruction(state['lang'])}
 News:
 {state['news']}
 Meaning:
@@ -98,6 +123,7 @@ def poc_agent(state: State) -> State:
     "Generate 3 simple POCs (≤45 min) tied to the news and context (profession/sector).")}
 
 {_ctx(state)}
+{format_instruction(state['lang'])}
 News:
 {state['news']}
 """
@@ -111,6 +137,7 @@ def compounding_agent(state: State) -> State:
     "Explain how post, action, and POCs strategically compound toward global opportunities (+10K/month).")}
 
 {_ctx(state)}
+{format_instruction(state['lang'])}
 Action:
 {state['action']}
 Post:
@@ -128,6 +155,7 @@ def final_summary(state: State) -> State:
     "📋 Final Summary of Today's Reading")}
 
 {_ctx(state)}
+{format_instruction(state['lang'])}
 📰 Noticias:
 {state['news']}
 
