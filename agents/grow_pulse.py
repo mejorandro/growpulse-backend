@@ -39,6 +39,7 @@ def format_instruction(lang: str) -> str:
         "Usa saltos de línea reales (presiona Enter dos veces) para separar párrafos y también al final. "
         "No escribas '\\n\\n' como texto literal, deben ser saltos de línea reales. "
         "El resultado debe estar listo para pasar a un parser de Markdown y verse correctamente espaciado verticalmente."
+        "No Emojis"
         if lang == "es"
         else
         "Do not greet the user or include courtesy phrases. "
@@ -47,6 +48,7 @@ def format_instruction(lang: str) -> str:
         "Use real line breaks (press Enter twice) to separate paragraphs and also at the end. "
         "Do not output '\\n\\n' as literal text, they must be real line breaks. "
         "The output must be ready to be parsed as Markdown and look properly spaced vertically."
+        "No emojis"
     )
 
 
@@ -61,6 +63,64 @@ def _ctx(state: State) -> str:
     sect = state.get("sector", "") or ""
     task = state.get("task", "") or ""
     return f"Profession: {prof}\nSector: {sect}\nTask: {task}\n"
+
+
+def generate_title(task: str, lang: str = "es", profession: str | None = None, sector: str | None = None) -> str:
+    prompt = f"""{lang_prefix(lang,
+    "Generá un título breve, impactante y llamativo (máx. 10 palabras) que resuma la esencia del briefing diario. El resultado debe estar listo para pasar a un parser de Markdown y verse correctamente. Sin emojis, sin saltos de linea, ni simbolos, solo texto puro. Evita agregar comillas o cualquier simbolo!",
+    "Generate a short, catchy, and engaging title (max. 10 words) that captures the essence of today's daily briefing. The output must be ready to be parsed as Markdown and look properly. No emojis, no break lines, just pure text. Avoid adding quotes or any other symbol")}
+
+    Profession: {profession or ""}
+    Sector: {sector or ""}
+    Task: {task or ""}
+
+    """
+    result = llm.invoke(prompt)
+    return result.content.strip()
+
+def generate_blog_summary(
+    task: str,
+    lang: str = "es",
+    profession: str | None = None,
+    sector: str | None = None
+) -> str:
+    """
+    Generate an impactful summary/intro paragraph for the GrowPulse blog.
+    - Acts as a 'hook' before the full blog body.
+    - Mix of value explanation + curiosity builder.
+    - Uses profession and sector as context, but lets the AI phrase them naturally.
+    """
+
+    # Context block (not injected literally into sentences)
+    context = f"Profession: {profession or ''}\nSector: {sector or ''}\nTask: {task or ''}\n"
+
+    base_prompt = lang_prefix(
+        lang,
+        # --- Spanish version ---
+        "Escribí un párrafo breve e impactante (3–4 frases) que explique:\n"
+        "- Por qué este briefing diario (GrowPulse) es valioso para el lector.\n"
+        "- Cómo conecta con su contexto profesional y sector.\n"
+        "- Cómo lo que estamos construyendo (Agentes de IA, insights prácticos) puede ayudarlo a crecer, innovar o captar oportunidades.\n"
+        "El tono debe ser motivador, claro y generar expectativa. Terminá con una idea que invite a seguir leyendo el cuerpo del blog.",
+        # --- English version ---
+        "Write a short, impactful paragraph (3–4 sentences) that explains:\n"
+        "- Why this daily briefing (GrowPulse) is valuable for the reader.\n"
+        "- How it connects with their professional context and sector.\n"
+        "- How what we are building (AI Agents, practical insights) can help them grow, innovate, or capture opportunities.\n"
+        "Tone should be motivating, clear, and create anticipation. End with a line that makes the reader curious to continue with the blog body."
+    )
+
+    prompt = f"""{base_prompt}
+
+{context}
+{format_instruction(lang)}
+"""
+
+    result = llm.invoke(prompt)
+    return result.content.strip()
+
+    result = llm.invoke(prompt)
+    return result.content.strip()
 
 def news_agent(state: State) -> State:
     prompt = f"""{lang_prefix(state['lang'],
@@ -198,7 +258,7 @@ builder.add_edge("Final", END)
 
 graph = builder.compile(checkpointer=MemorySaver())
 
-def run_pipeline(task: str, lang: str = "es", profession: str | None = None, sector: str | None = None) -> dict:
+def run_blog_body_pipeline(task: str, lang: str = "es", profession: str | None = None, sector: str | None = None) -> dict:
     state_in: State = {
         "task": task or "",
         "lang": lang or "es",
@@ -216,4 +276,38 @@ def run_pipeline(task: str, lang: str = "es", profession: str | None = None, sec
         "poc_ideas": result.get("poc_ideas", ""),
         "compounding": result.get("compounding", ""),
         "final_summary": result.get("final_summary", ""),
+    }
+
+
+def run_blog_intro_pipeline(task: str, lang: str = "es", profession: str | None = None, sector: str | None = None) -> dict:
+   
+    state_in: State = {
+        "task": task or "",
+        "lang": lang or "es",
+        "profession": (profession or "").strip(),
+        "sector": (sector or "").strip(),
+        # intro-specific fields
+        "title": "",
+        "summary": "",
+    }
+
+    # --- Call the intro agent ---
+    title = generate_title(
+        state_in["task"],
+        state_in["lang"],
+        state_in["profession"],
+        state_in["sector"],
+    )
+
+    summary = generate_blog_summary(
+        state_in["task"],
+        state_in["lang"],
+        state_in["profession"],
+        state_in["sector"],
+    )
+
+    # --- Return clean result ---
+    return {
+        "title": title,
+        "summary": summary
     }
