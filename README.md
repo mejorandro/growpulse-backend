@@ -1,4 +1,4 @@
-# 🌱 Grow‑Pulse Backend — README (v0.4)
+# 🌱 Grow‑Pulse Backend — README (v0.5)
 
 _Subproduct of **GrowRoutine**_
 
@@ -16,7 +16,7 @@ It is intentionally built lean, modular, and agent‑first – to explore how fa
 ## 🗺️ GrowPulse Architecture
 
 <p align="center">
-  <img src="docs/architecture-diagram.png.png" alt="GrowPulse Architecture" width="700">
+  <img src="docs/architecture-diagram.png" alt="GrowPulse Architecture" width="700">
 </p>
 
 ---
@@ -80,6 +80,83 @@ It processes a simple request (task, language, profession, sector) and returns a
 `Input (task, lang, profession, sector)` →  
 `News → Meaning → Action → LinkedIn → POCs → Compounding → Final Summary` →  
 `Output JSON`
+
+---
+
+## 🚀 Deployment Guide (WIP)
+
+### 1. EC2 Server (AWS)
+- Launch **Ubuntu 24.04** EC2 instance.  
+- Security Groups:  
+  - 22 (SSH) – access for you only.  
+  - 80 (HTTP), 443 (HTTPS) – for serving the app.  
+- This instance is where the backend service lives.
+
+### 2. Environment Setup
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y python3.12 python3.12-venv python3-pip git build-essential
+```
+- Create project folder: `/srv/growroutine/backend`  
+- Clone repo into it.  
+- Create venv: `python3.12 -m venv .venv`  
+- Activate: `source .venv/bin/activate`  
+- Install dependencies: `pip install -r requirements.txt`  
+
+### 3. Environment Variables
+File: `/etc/growroutine/backend.env`  
+```
+ENV=production
+HOST=127.0.0.1
+PORT=8000
+ALLOWED_ORIGINS=https://growroutine.com
+```
+
+### 4. Run Backend (FastAPI)
+- Entry point: `api.main:app`  
+- Add `/healthz` endpoint.  
+- Enable CORS for `https://growroutine.com`.
+
+### 5. Systemd Service
+File: `/etc/systemd/system/growroutine-backend.service`  
+```
+[Unit]
+Description=GrowRoutine Backend Service
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/srv/growroutine/backend
+EnvironmentFile=/etc/growroutine/backend.env
+ExecStart=/srv/growroutine/backend/.venv/bin/gunicorn api.main:app   --bind 127.0.0.1:8000   --workers 2   --worker-class uvicorn.workers.UvicornWorker   --timeout 120
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 6. Nginx Reverse Proxy
+Inside HTTPS server block:  
+```
+location /api/ {
+  proxy_pass http://127.0.0.1:8000/;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_read_timeout 180s;
+}
+```
+
+Now API is accessible under `https://growroutine.com/api/...`.
+
+### 7. Final Checks (WIP)
+```bash
+systemctl status growroutine-backend
+curl http://127.0.0.1:8000/healthz
+curl https://growroutine.com/api/healthz
+```
+
+✅ Backend is now running as a production service, behind HTTPS.
 
 ---
 
