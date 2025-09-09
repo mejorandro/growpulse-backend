@@ -14,7 +14,9 @@ load_dotenv(ROOT_DIR / ".env")
 if not os.getenv("OPENAI_API_KEY"):
     raise RuntimeError("OPENAI_API_KEY no está definido.")
 
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+OPENAI_MODEL_FAST = os.getenv("OPENAI_MODEL_FAST", "gpt-4o-mini")
+OPENAI_MODEL_HEAVY = os.getenv("OPENAI_MODEL_HEAVY", "gpt-4o")
+
 
 class State(TypedDict):
     task: str
@@ -29,10 +31,12 @@ class State(TypedDict):
     compounding: str
     final_summary: str
 
-llm = ChatOpenAI(model=OPENAI_MODEL)
+llm_fast = ChatOpenAI(model=OPENAI_MODEL_FAST)
+llm_heavy = ChatOpenAI(model=OPENAI_MODEL_HEAVY)
 
 def format_instruction(lang: str) -> str:
     return (
+         "Esta información se renderizara luego en Formato Markdown. "
         "No saludes al usuario ni incluyas frases de cortesía. "
         "Si hay un texto introductorio agrega un salto de línea extra después de él para separarlo claramente del contenido principal. "
         "No agregues encabezados ni etiquetas de sección, solo empieza directamente con el texto o contenido que fuiste creado para generar. "
@@ -65,17 +69,18 @@ def _ctx(state: State) -> str:
     return f"Profession: {prof}\nSector: {sect}\nTask: {task}\n"
 
 
+
 def generate_title(task: str, lang: str = "es", profession: str | None = None, sector: str | None = None) -> str:
     prompt = f"""{lang_prefix(lang,
-    "Generá un título breve, impactante y llamativo (máx. 10 palabras) que resuma la esencia del briefing diario. El resultado debe estar listo para pasar a un parser de Markdown y verse correctamente. Sin emojis, sin saltos de linea, ni simbolos, solo texto puro. Evita agregar comillas o cualquier simbolo!",
-    "Generate a short, catchy, and engaging title (max. 10 words) that captures the essence of today's daily briefing. The output must be ready to be parsed as Markdown and look properly. No emojis, no break lines, just pure text. Avoid adding quotes or any other symbol")}
+    "Generá un título breve, impactante y llamativo (máx. 10 palabras) que resuma la esencia del briefing diario. El resultado debe estar listo para pasar a un parser de Markdown y verse correctamente. Sin emojis, sin saltos de linea, ni simbolos, solo texto puro. Evita agregar comillas o cualquier simbolo!. Debes sonar directo, aspiracional y enfocado en resultados. ",
+    "Generate a short, catchy, and engaging title (max. 10 words) that captures the essence of today's daily briefing. The output must be ready to be parsed as Markdown and look properly. No emojis, no break lines, just pure text. Avoid adding quotes or any other symbol. Be direct, aspirational, and results-focused.")}
 
     Profession: {profession or ""}
     Sector: {sector or ""}
     Task: {task or ""}
 
     """
-    result = llm.invoke(prompt)
+    result = llm_fast.invoke(prompt)
     return result.content.strip()
 
 def generate_blog_summary(
@@ -116,47 +121,44 @@ def generate_blog_summary(
 {format_instruction(lang)}
 """
 
-    result = llm.invoke(prompt)
-    return result.content.strip()
-
-    result = llm.invoke(prompt)
+    result = llm_fast.invoke(prompt)
     return result.content.strip()
 
 def news_agent(state: State) -> State:
     prompt = f"""{lang_prefix(state['lang'],
-    "Sos un analista de IA. Extraé 3–5 noticias recientes de IA (OpenAI, Anthropic, DeepMind, open-source, enterprise). Sé concreto, sin inventar.",
-    "You are an AI analyst. Extract 3–5 recent AI news (OpenAI, Anthropic, DeepMind, open-source, enterprise). Be concrete, no fabrication.")}
+    "Sos un analista de IA. Extraé 3–5 noticias recientes de IA (OpenAI, Anthropic, DeepMind, open-source, enterprise). Sé concreto, sin inventar. bullets de 1 línea cada una, con foco en impacto práctico. No redactes como artículo periodístico, sino como inteligencia ejecutiva.",
+    "You are an AI analyst. Extract 3–5 recent AI news (OpenAI, Anthropic, DeepMind, open-source, enterprise). Be concrete, no fabrication. 1-line bullets, focused on practical impact. Do not write like a news article, write like executive intelligence.")}
 
 {_ctx(state)}
 {format_instruction(state['lang'])}
 """
-    result = llm.invoke(prompt)
+    result = llm_fast.invoke(prompt)
     state["news"] = result.content
     return state
 
 def meaning_agent(state: State) -> State:
     prompt = f"""{lang_prefix(state['lang'],
-    "Sos un coach de carrera para un Tech Lead .NET + AWS + agentes LLM. Explicá cómo cada noticia es oportunidad real en banca, seguros, salud, travel, energía.",
-    "You are a career coach for a .NET + AWS + LLM-agents Tech Lead. Explain how each news becomes real opportunities in finance, insurance, healthcare, travel, energy.")}
+    "Sos un coach de carrera para un Tech Lead .NET + AWS + agentes LLM. Explicá cómo cada noticia es oportunidad real en banca, seguros, salud, travel, energía. 1–2 frases por noticia.",
+    "You are a career coach for a .NET + AWS + LLM-agents Tech Lead. Explain how each news becomes real opportunities in finance, insurance, healthcare, travel, energy. 1–2 sentences per news.")}
 
 {_ctx(state)}
 Noticias:
 {state['news']}
 {format_instruction(state['lang'])}
 """
-    result = llm.invoke(prompt)
+    result = llm_fast.invoke(prompt)
     state["meaning"] = result.content
     return state
 
 def action_agent(state: State) -> State:
     prompt = f"""{lang_prefix(state['lang'],
-    "Proponé UNA micro-acción (≤15 min) ejecutable hoy (post corto, DM, pitch, probar repo), alineada al contexto.",
-    "Suggest ONE micro-action (≤15 min) executable today (short post, DM, pitch, test repo), aligned to the context.")}
+    "Proponé UNA micro-acción (≤15 min) ejecutable hoy (post corto, DM, pitch, probar repo), alineada al contexto. Responde en una sola línea, empezando con un verbo imperativo.",
+    "Suggest ONE micro-action (≤15 min) executable today (short post, DM, pitch, test repo), aligned to the context. Respond in a single line, starting with an imperative verb.")}
 
 {_ctx(state)}
 {format_instruction(state['lang'])}
 """
-    result = llm.invoke(prompt)
+    result = llm_fast.invoke(prompt)
     state["action"] = result.content
     return state
 
@@ -173,21 +175,21 @@ Meaning:
 Daily Action:
 {state['action']}
 """
-    result = llm.invoke(prompt)
+    result = llm_fast.invoke(prompt)
     state["linkedin_post"] = result.content
     return state
 
 def poc_agent(state: State) -> State:
     prompt = f"""{lang_prefix(state['lang'],
-    "Generá 3 POCs simples (≤45 min) conectados a las noticias y contexto (profesión/sector).",
-    "Generate 3 simple POCs (≤45 min) tied to the news and context (profession/sector).")}
+    "Generá 3 POCs simples (≤45 min) conectados a las noticias y contexto (profesión/sector). Formato bullet: Idea (≤10 palabras) + Beneficio (1 frase) + Tiempo estimado. Los POCs deben conectar con las noticias y el contexto profesional/sector.",
+    "Generate 3 simple POCs (≤45 min) tied to the news and context (profession/sector). Bullet format: Idea (≤10 words) + Benefit (1 sentence) + Estimated time. POCs must connect with the news and professional/sector context.")}
 
 {_ctx(state)}
 {format_instruction(state['lang'])}
 News:
 {state['news']}
 """
-    result = llm.invoke(prompt)
+    result = llm_fast.invoke(prompt)
     state["poc_ideas"] = result.content
     return state
 
@@ -205,7 +207,7 @@ Post:
 POCs:
 {state['poc_ideas']}
 """
-    result = llm.invoke(prompt)
+    result = llm_heavy.invoke(prompt)
     state["compounding"] = result.content
     return state
 
@@ -234,7 +236,7 @@ def final_summary(state: State) -> State:
 📈 Compounding:
 {state['compounding']}
 """
-    result = llm.invoke(prompt)
+    result = llm_heavy.invoke(prompt)
     state["final_summary"] = result.content
     return state
 
